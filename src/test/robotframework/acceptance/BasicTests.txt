@@ -1,0 +1,16 @@
+| *Settings* | *Value*
+| Library    | HTTPLibrary
+| Library    | BuiltIn
+     
+| *Variables*   | *Value*
+| ${serverUrl}  | http://echo.jsontest.com/one/two
+
+| *Test Cases*   |
+| Get Request
+|   | [Tags]            | get      
+|   | Create Session    | google        | http://www.google.com
+|   | ${resp}           | Get Request   | google    | /
+|   | Log               | ${resp}
+|   | Log               | ${resp.statusLine}
+|   | Log               | ${resp.statusLine.statusCode}
+|   | Should Be Equal As Strings        | ${resp.statusLine.statusCode} | 200
