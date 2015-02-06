@@ -3,7 +3,7 @@ package net.randomsync.robotframework.http.internal;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HttpSession {
+public class InternalHttpSession {
     private Map<String, String> headers = new HashMap<String, String>();
     private String url;
 

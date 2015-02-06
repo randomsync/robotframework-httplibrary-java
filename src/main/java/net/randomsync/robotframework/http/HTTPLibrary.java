@@ -1,17 +1,20 @@
 package net.randomsync.robotframework.http;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.randomsync.robotframework.http.internal.HttpSession;
+import net.randomsync.robotframework.http.internal.InternalHttpResponse;
+import net.randomsync.robotframework.http.internal.InternalHttpSession;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Content;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.client.fluent.Response;
 import org.robotframework.javalib.annotation.ArgumentNames;
 import org.robotframework.javalib.annotation.RobotKeyword;
-import org.robotframework.javalib.annotation.RobotKeywordOverload;
 import org.robotframework.javalib.annotation.RobotKeywords;
 import org.robotframework.javalib.library.AnnotationLibrary;
 
@@ -30,7 +33,7 @@ public class HTTPLibrary extends AnnotationLibrary {
 
     public static final String ROBOT_LIBRARY_DOC_FORMAT = "HTML";
 
-    private Map<String, HttpSession> sessionCache = new HashMap<String, HttpSession>();
+    private Map<String, InternalHttpSession> sessionCache = new HashMap<String, InternalHttpSession>();
 
     public HTTPLibrary() {
         super(KEYWORD_PATTERN);
@@ -47,8 +50,8 @@ public class HTTPLibrary extends AnnotationLibrary {
      */
     @RobotKeyword
     @ArgumentNames({ "alias", "url" })
-    public HttpSession createSession(String alias, String url) {
-        HttpSession session = new HttpSession();
+    public InternalHttpSession createSession(String alias, String url) {
+        InternalHttpSession session = new InternalHttpSession();
         session.setUrl(url);
         sessionCache.put(alias, session);
         return session;
@@ -64,24 +67,34 @@ public class HTTPLibrary extends AnnotationLibrary {
      *            uri/path of the request
      */
     @RobotKeyword
-    @ArgumentNames({ "alias", "url" })
-    public HttpResponse getRequest(String alias, String uri) {
+    @ArgumentNames({ "alias", "path" })
+    public InternalHttpResponse getRequest(String alias, String path) {
         // TODO add headers/params/allow redirects as well
         // TODO merge headers from session object with the headers passed here
         // TODO take headers/params/cookies etc from session object and add it
         // to the request
-        HttpResponse response = null;
-        HttpSession session = sessionCache.get(alias);
-        String url = session.getUrl();
-        //concat url with uri 
+        InternalHttpResponse httpResponse = null;
+        InternalHttpSession session = sessionCache.get(alias);
+        URI uri = null;
+        try {
+            uri = new URI(session.getUrl() + path);
+        } catch (URISyntaxException e) {
+            System.out.println("*ERROR:" + System.currentTimeMillis() + "* "
+                    + e.getLocalizedMessage());
+        }
 
         try {
-            response = Request.Get(url).execute().returnResponse();
+            HttpResponse response = Request.Get(uri).execute().returnResponse();
+            httpResponse = new InternalHttpResponse();
+            httpResponse
+                    .setStatusCode(response.getStatusLine().getStatusCode());
+            httpResponse.setEntity(response.getEntity());
+
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return response;
+        return httpResponse;
     }
 
     /**
@@ -109,6 +122,14 @@ public class HTTPLibrary extends AnnotationLibrary {
             e.printStackTrace();
         }
         return content;
+    }
+
+    /**
+     * Delete all the sessions that have been stored so far
+     */
+    @RobotKeyword
+    public void deleteAllSessions() {
+        sessionCache.clear();
     }
 
 }
